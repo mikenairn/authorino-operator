@@ -83,15 +83,18 @@ func (r *AuthorinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	log.Info("Found an instance of authorino", "authorinoInstanceName", authorinoInstance.Name)
+	authorinoInstance.Status.Ready = false
 
 	err = r.authorinoServices(authorinoInstance)
 	if err != nil {
+		authorinoInstance.Status.Ready = false
 		log.Error(err, "Failed to create authorino services")
 		return ctrl.Result{}, err
 	}
 
 	err = r.authorinoPermission(authorinoInstance, req.NamespacedName.Namespace)
 	if err != nil {
+		authorinoInstance.Status.Ready = false
 		log.Error(err, "Failed to create authorino permission")
 		return ctrl.Result{}, err
 	}
@@ -106,12 +109,14 @@ func (r *AuthorinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		newDeployment := r.authorinoDeployment(authorinoInstance)
 		err = r.Create(ctx, newDeployment)
 		if err != nil {
+			authorinoInstance.Status.Ready = false
 			log.Error(err, "Failed to create Authorino deployment resource", newDeployment.Name, newDeployment.Namespace)
 			return ctrl.Result{}, err
 		}
 		// Deployment created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
+		authorinoInstance.Status.Ready = false
 		log.Error(err, "Failed to get Deployment for Authorino")
 		return ctrl.Result{}, err
 	}
@@ -127,9 +132,17 @@ func (r *AuthorinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
-	//TODO: handle deletiton
-
 	//TODO: update status
+	err = r.handleStatusUpdate(authorinoInstance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		authorinoInstance.Status.Ready = true
+	}
+
+	r.Status().Update(context.TODO(), authorinoInstance)
 
 	return ctrl.Result{RequeueAfter: time.Minute}, nil
 }
@@ -563,6 +576,17 @@ func (r *AuthorinoReconciler) authorinoServices(authorino *authorinooperatorv1be
 		}
 	}
 
+	return nil
+}
+
+func (r *AuthorinoReconciler) handleStatusUpdate(authorino *authorinooperatorv1beta1.Authorino) error {
+	authorinoInstances := authorinooperatorv1beta1.AuthorinoList{}
+	err := r.List(context.TODO(), &authorinoInstances)
+	if err != nil {
+		return fmt.Errorf("Failed getting authorino instances, err: %w", err)
+	}
+
+	authorino.Status.AuthorinoInstances = len(authorinoInstances.Items)
 	return nil
 }
 

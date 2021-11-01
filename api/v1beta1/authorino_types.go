@@ -98,7 +98,10 @@ type AuthorinoStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Number of authorino instances in the cluster
-	AuthorinoInstances int32 `json:"authorinoInstances"`
+	AuthorinoInstances int `json:"authorinoInstances"`
+
+	// Number of authorino instances in the cluster
+	Ready bool `json:"ready"`
 
 	// Conditions is an array of the current Authorino's CR conditions
 	// Supported condition types: ConditionReady
