@@ -8,7 +8,7 @@ on:
 env:
   IMG_TAGS: ${{ github.ref_name }}
   IMG_REGISTRY_HOST: quay.io
-  IMG_REGISTRY_ORG: kuadrant
+  IMG_REGISTRY_ORG: mnairn
   MAIN_BRANCH_NAME: main
   OPERATOR_NAME: authorino-operator
 
